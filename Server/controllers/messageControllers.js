@@ -1,6 +1,6 @@
-import Message from "../models/Message";
-import User from "../models/User";
-import cloudinary from "../lib/cloudinary";
+import Message from "../models/Message.js";
+import User from "../models/User.js";
+import cloudinary from "../lib/cloudinary.js";
 import { io, userSocketMap } from "../server.js";
 
 //get all users except the logged in user
@@ -15,7 +15,7 @@ export const getUserForSidebar = async (req, res) => {
     const unseenMessages = {};
     const promises = filteredUsers.map(async (user) => {
       const messages = await Message.find({
-        senderId: user._Id,
+        senderId: user._id,
         receiverId: userId,
         seen: false,
       });

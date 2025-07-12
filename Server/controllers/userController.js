@@ -50,9 +50,9 @@ export const login = async (req, res) => {
     const isPasswordCorrect = await bcrypt.compare(password, userData.password);
 
     if (!isPasswordCorrect) {
-      return res.json({ seccess: false, message: "Invalid Credentials" });
+      return res.json({ success: false, message: "Invalid Credentials" });
     }
-    const token = generateToken(newData._id);
+    const token = generateToken(userData._id);
     res.json({
       success: true,
       userData,
@@ -77,6 +77,7 @@ export const checkAuth = (req, res) => {
 export const updateProfile = async (req, res) => {
   try {
     const { profilePic, bio, fullName } = req.body;
+
     const userId = req.user._id;
     let updatedUser;
     if (!profilePic) {
