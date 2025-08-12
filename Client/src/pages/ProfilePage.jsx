@@ -1,4 +1,4 @@
-import React, { useState, useContext } from "react";
+import React, { useState, useContext, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import assets from "../assets/assets";
 import { AuthContext } from "../../context/AuthContext.jsx";
@@ -7,27 +7,50 @@ const ProfilePage = () => {
   const { authUser, updateProfile } = useContext(AuthContext);
 
   const [selectedImg, setSelectedImg] = useState(null);
+  const [previewImg, setPreviewImg] = useState(null);
+  const [name, setName] = useState(authUser?.fullName || "");
+  const [bio, setBio] = useState(authUser?.bio || "");
+  const [loading, setLoading] = useState(false);
+
   const navigate = useNavigate();
-  const [name, setName] = useState(authUser.fullName);
-  const [bio, setBio] = useState(authUser.bio);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-
+  // Create a preview URL when image is selected
+  useEffect(() => {
     if (!selectedImg) {
-      await updateProfile({ fullName: name, bio });
-      navigate("/");
+      setPreviewImg(null);
       return;
     }
 
-    const reader = new FileReader();
-    reader.readAsDataURL(selectedImg); // ✅ Corrected method name
+    const objectUrl = URL.createObjectURL(selectedImg);
+    setPreviewImg(objectUrl);
 
-    reader.onload = async () => {
-      const base64Image = reader.result;
-      await updateProfile({ profilePic: base64Image, fullName: name, bio });
-      navigate("/");
-    };
+    return () => URL.revokeObjectURL(objectUrl); // cleanup to prevent memory leak
+  }, [selectedImg]);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+
+    try {
+      if (!selectedImg) {
+        await updateProfile({ fullName: name, bio });
+        navigate("/");
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.readAsDataURL(selectedImg);
+
+      reader.onload = async () => {
+        const base64Image = reader.result;
+        await updateProfile({ profilePic: base64Image, fullName: name, bio });
+        navigate("/");
+      };
+    } catch (err) {
+      console.error("Profile update failed:", err);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -51,12 +74,8 @@ const ProfilePage = () => {
               hidden
             />
             <img
-              src={
-                selectedImg
-                  ? URL.createObjectURL(selectedImg)
-                  : assets.avatar_icon
-              }
-              alt=""
+              src={previewImg || authUser?.profilePic || assets.avatar_icon}
+              alt="Profile preview"
               className="w-12 h-12 rounded-full"
             />
             Upload profile picture
@@ -82,18 +101,19 @@ const ProfilePage = () => {
 
           <button
             type="submit"
-            className="bg-gradient-to-r from-purple-400 to-violet-600 text-white p-2 rounded-full text-lg cursor-pointer"
+            disabled={loading}
+            className={`bg-gradient-to-r from-purple-400 to-violet-600 text-white p-2 rounded-full text-lg cursor-pointer ${
+              loading ? "opacity-50 cursor-not-allowed" : ""
+            }`}
           >
-            Save Changes
+            {loading ? "Saving..." : "Save Changes"}
           </button>
         </form>
 
         <img
-          className={`max-w-44 aspect-square rounded-full mx-10 max-sm:mt-10 ${
-            selectedImg && "rounded-full"
-          }`}
-          src={authUser?.profilePic || assets.logo_icon}
-          alt=""
+          className="max-w-44 aspect-square rounded-full mx-10 max-sm:mt-10"
+          src={previewImg || authUser?.profilePic || assets.logo_icon}
+          alt="Current profile"
         />
       </div>
     </div>
